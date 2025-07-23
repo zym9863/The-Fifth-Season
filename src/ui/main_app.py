@@ -376,12 +376,14 @@ class FifthSeasonApp:
                 st.markdown(f"""
                 <div style="
                     background-color: #f8f9fa;
+                    color: #2c3e50;
                     padding: 20px;
                     border-radius: 10px;
                     border-left: 4px solid #007bff;
                     margin: 10px 0;
                     line-height: 1.8;
                     font-size: 16px;
+                    font-weight: 400;
                 ">
                 {story_data['story'].replace('\n', '<br>')}
                 </div>
