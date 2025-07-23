@@ -74,45 +74,117 @@ class EmotionAnalyzer:
             return dict(emotion_scores)
         
         # 直接匹配情感关键词
+        direct_matches = 0
         for word in words:
             if word in self.emotion_dict:
                 emotion = self.emotion_dict[word]
-                emotion_scores[emotion] += 1.0
+                emotion_scores[emotion] += 1.5  # 直接匹配权重更高
+                direct_matches += 1
         
-        # 模糊匹配 - 检查是否包含情感关键词
+        # 增强模糊匹配 - 检查是否包含情感关键词
+        fuzzy_matches = 0
         for word in words:
             for emotion, keywords in self.emotion_keywords.items():
                 for keyword in keywords:
-                    if keyword in word or word in keyword:
-                        emotion_scores[emotion] += 0.5
+                    # 更精确的模糊匹配
+                    if len(keyword) >= 2:  # 只对长度>=2的关键词进行模糊匹配
+                        if keyword in word and len(word) <= len(keyword) + 2:
+                            emotion_scores[emotion] += 0.8
+                            fuzzy_matches += 1
+                        elif word in keyword and len(keyword) <= len(word) + 2:
+                            emotion_scores[emotion] += 0.6
+                            fuzzy_matches += 1
         
-        # 使用TextBlob进行情感极性分析作为补充
+        # 语义匹配 - 基于词汇的语义相关性
+        semantic_matches = self._semantic_emotion_analysis(words)
+        for emotion, score in semantic_matches.items():
+            emotion_scores[emotion] += score
+        
+        # 使用TextBlob进行情感极性分析作为补充（仅在其他匹配较少时使用）
         text = ' '.join(words)
+        total_matches = direct_matches + fuzzy_matches + sum(semantic_matches.values())
+        
         try:
             blob = TextBlob(text)
             polarity = blob.sentiment.polarity
+            subjectivity = blob.sentiment.subjectivity
             
-            if polarity > 0.1:
-                emotion_scores['喜悦'] += polarity * 2
-                emotion_scores['温暖'] += polarity * 1.5
-            elif polarity < -0.1:
-                emotion_scores['忧伤'] += abs(polarity) * 2
-                emotion_scores['失落'] += abs(polarity) * 1.5
-            else:
-                emotion_scores['平静'] += 1.0
+            # 只有在匹配较少且文本有情感倾向时才使用TextBlob结果
+            if total_matches < 2 and subjectivity > 0.3:
+                if polarity > 0.2:
+                    emotion_scores['喜悦'] += polarity * 1.5
+                    emotion_scores['温暖'] += polarity * 1.0
+                elif polarity < -0.2:
+                    emotion_scores['忧伤'] += abs(polarity) * 1.5
+                    emotion_scores['失落'] += abs(polarity) * 1.0
+                elif abs(polarity) <= 0.1 and subjectivity > 0.5:
+                    # 主观但中性的文本可能包含复杂情感
+                    emotion_scores['思念'] += 0.3
+                    emotion_scores['平静'] += 0.2
+            
+            # 避免完全没有情感的情况
+            if sum(emotion_scores.values()) == 0:
+                if subjectivity > 0.3:
+                    emotion_scores['平静'] += 0.3
+                else:
+                    emotion_scores['平静'] += 0.1
         except:
-            # 如果TextBlob分析失败，使用默认值
-            emotion_scores['平静'] += 0.5
+            # TextBlob分析失败时的处理
+            if sum(emotion_scores.values()) == 0:
+                emotion_scores['平静'] += 0.1
         
-        # 归一化权重
+        # 改进的归一化权重 - 保持情感多样性
         total_score = sum(emotion_scores.values())
         if total_score > 0:
-            emotion_scores = {
-                emotion: score / total_score 
-                for emotion, score in emotion_scores.items()
-            }
+            # 对权重进行平滑处理，避免单一情感权重过高
+            smoothed_scores = {}
+            for emotion, score in emotion_scores.items():
+                if score > 0:
+                    # 使用平方根来平滑高权重
+                    smoothed_scores[emotion] = np.sqrt(score)
+            
+            # 重新计算总分并归一化
+            smoothed_total = sum(smoothed_scores.values())
+            if smoothed_total > 0:
+                emotion_scores = {
+                    emotion: score / smoothed_total 
+                    for emotion, score in smoothed_scores.items()
+                }
         
         return dict(emotion_scores)
+    
+    def _semantic_emotion_analysis(self, words: List[str]) -> Dict[str, float]:
+        """
+        基于语义的情感分析
+        
+        Args:
+            words: 词语列表
+            
+        Returns:
+            语义情感权重字典
+        """
+        semantic_scores = defaultdict(float)
+        
+        # 定义语义规则
+        semantic_rules = {
+            '思念': ['过去', '从前', '以前', '当年', '那时', '曾经', '记得', '还记得'],
+            '失落': ['不再', '失去', '没有了', '结束', '完了', '破碎', '散了'],
+            '期待': ['未来', '明天', '将来', '希冀', '但愿', '如果', '要是'],
+            '无助': ['不知道', '怎么办', '不懂', '不会', '不能', '无法'],
+            '温暖': ['家', '妈妈', '爸爸', '朋友', '陪伴', '一起', '拥抱'],
+            '忧伤': ['眼泪', '哭', '痛', '伤', '苦', '难受', '心碎'],
+            '喜悦': ['笑', '哈哈', '开心', '棒', '好', '赞', '太好了'],
+            '平静': ['静', '安', '稳', '缓', '慢', '轻', '淡']
+        }
+        
+        # 检查语义规则匹配
+        for word in words:
+            for emotion, semantic_words in semantic_rules.items():
+                for semantic_word in semantic_words:
+                    if semantic_word in word or word in semantic_word:
+                        semantic_scores[emotion] += 0.4
+        
+        return dict(semantic_scores)
     
     def extract_emotion_keywords(self, words: List[str]) -> Dict[str, List[str]]:
         """

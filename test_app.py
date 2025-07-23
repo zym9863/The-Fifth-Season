@@ -111,23 +111,23 @@ def test_visualizer():
     # 测试雷达图创建
     try:
         radar_fig = visualizer.create_emotion_radar_chart(emotion_weights)
-        print("\n✓ 雷达图创建成功")
+        print("\n[成功] 雷达图创建成功")
     except Exception as e:
-        print(f"\n✗ 雷达图创建失败: {e}")
+        print(f"\n[失败] 雷达图创建失败: {e}")
     
     # 测试柱状图创建
     try:
         bar_fig = visualizer.create_emotion_bar_chart(emotion_weights)
-        print("✓ 柱状图创建成功")
+        print("[成功] 柱状图创建成功")
     except Exception as e:
-        print(f"✗ 柱状图创建失败: {e}")
+        print(f"[失败] 柱状图创建失败: {e}")
     
     # 测试饼图创建
     try:
         pie_fig = visualizer.create_emotion_pie_chart(emotion_weights)
-        print("✓ 饼图创建成功")
+        print("[成功] 饼图创建成功")
     except Exception as e:
-        print(f"✗ 饼图创建失败: {e}")
+        print(f"[失败] 饼图创建失败: {e}")
     
     # 测试词云创建
     try:
@@ -138,11 +138,11 @@ def test_visualizer():
         }
         wordcloud_img = visualizer.create_wordcloud(emotion_keywords, emotion_weights)
         if wordcloud_img:
-            print("✓ 词云创建成功")
+            print("[成功] 词云创建成功")
         else:
-            print("⚠ 词云创建返回空结果")
+            print("[警告] 词云创建返回空结果")
     except Exception as e:
-        print(f"✗ 词云创建失败: {e}")
+        print(f"[失败] 词云创建失败: {e}")
     
     return True
 
@@ -207,7 +207,7 @@ def main():
         print("- 故事生成功能需要网络连接")
         
     except Exception as e:
-        print(f"\n❌ 测试过程中发生错误: {e}")
+        print(f"\n[错误] 测试过程中发生错误: {e}")
         import traceback
         traceback.print_exc()
 
