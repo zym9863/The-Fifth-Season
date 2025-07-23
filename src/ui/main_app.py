@@ -187,7 +187,7 @@ class FifthSeasonApp:
             wordcloud_img = self.emotion_visualizer.create_wordcloud(emotion_keywords, emotion_weights)
             
             if wordcloud_img:
-                st.image(f"data:image/png;base64,{wordcloud_img}", use_column_width=True)
+                st.image(f"data:image/png;base64,{wordcloud_img}", use_container_width=True)
             else:
                 st.info("未能生成词云图，可能是因为情感关键词较少")
         

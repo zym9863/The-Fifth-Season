@@ -252,17 +252,58 @@ class EmotionVisualizer:
             return None
         
         try:
+            # 寻找合适的中文字体
+            import platform
+            font_path = None
+            
+            if platform.system() == "Windows":
+                # Windows系统字体路径
+                possible_fonts = [
+                    "C:/Windows/Fonts/simhei.ttf",  # 黑体
+                    "C:/Windows/Fonts/simsun.ttc",  # 宋体
+                    "C:/Windows/Fonts/msyh.ttc",    # 微软雅黑
+                    "C:/Windows/Fonts/simkai.ttf",  # 楷体
+                ]
+            elif platform.system() == "Linux":
+                # Linux系统字体路径
+                possible_fonts = [
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                    "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+                ]
+            else:  # macOS
+                possible_fonts = [
+                    "/System/Library/Fonts/PingFang.ttc",
+                    "/System/Library/Fonts/Hiragino Sans GB.ttc",
+                    "/Library/Fonts/Arial Unicode MS.ttf",
+                ]
+            
+            # 查找可用字体
+            for font in possible_fonts:
+                if os.path.exists(font):
+                    font_path = font
+                    break
+            
             # 创建词云
-            wordcloud = WordCloud(
-                width=self.wordcloud_config['width'],
-                height=self.wordcloud_config['height'],
-                background_color=self.wordcloud_config['background_color'],
-                max_words=self.wordcloud_config['max_words'],
-                colormap=self.wordcloud_config['colormap'],
-                font_path=self.wordcloud_config['font_path'],
-                relative_scaling=0.5,
-                min_font_size=10
-            ).generate_from_frequencies(word_freq)
+            wordcloud_config = {
+                'width': self.wordcloud_config['width'],
+                'height': self.wordcloud_config['height'],
+                'background_color': self.wordcloud_config['background_color'],
+                'max_words': self.wordcloud_config['max_words'],
+                'colormap': self.wordcloud_config['colormap'],
+                'relative_scaling': 0.5,
+                'min_font_size': 12,
+                'max_font_size': 100,
+                'prefer_horizontal': 0.9,
+                'scale': 1,
+                'collocations': False,
+            }
+            
+            # 如果找到字体，添加字体路径
+            if font_path:
+                wordcloud_config['font_path'] = font_path
+            
+            wordcloud = WordCloud(**wordcloud_config).generate_from_frequencies(word_freq)
             
             # 转换为base64
             img_buffer = io.BytesIO()
@@ -274,7 +315,28 @@ class EmotionVisualizer:
             
         except Exception as e:
             print(f"词云生成失败: {e}")
-            return None
+            # 尝试创建简单版本的词云
+            try:
+                # 简化配置，不使用字体
+                simple_wordcloud = WordCloud(
+                    width=800,
+                    height=400,
+                    background_color='white',
+                    max_words=50,
+                    relative_scaling=0.5,
+                    min_font_size=12,
+                    collocations=False
+                ).generate_from_frequencies(word_freq)
+                
+                img_buffer = io.BytesIO()
+                simple_wordcloud.to_image().save(img_buffer, format='PNG')
+                img_buffer.seek(0)
+                img_base64 = base64.b64encode(img_buffer.getvalue()).decode()
+                
+                return img_base64
+            except Exception as e2:
+                print(f"简化词云生成也失败: {e2}")
+                return None
     
     def create_emotion_timeline(self, emotion_data_list: List[Dict[str, Any]]) -> go.Figure:
         """

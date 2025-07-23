@@ -84,6 +84,11 @@ WORDCLOUD_CONFIG = {
     "height": 400,
     "background_color": "white",
     "max_words": 100,
-    "colormap": "viridis",
-    "font_path": None  # 可以指定中文字体路径
+    "colormap": "Set3",  # 使用更适合中文的颜色方案
+    "font_path": None,   # 将在运行时自动检测
+    "relative_scaling": 0.5,
+    "min_font_size": 12,
+    "max_font_size": 80,
+    "prefer_horizontal": 0.9,
+    "collocations": False  # 避免词语重复组合
 }
